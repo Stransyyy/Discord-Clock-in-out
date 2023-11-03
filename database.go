@@ -137,6 +137,8 @@ func main() {
 
 	fmt.Println("inputs added ")
 
+	//SendMessage()
+
 	err = closeDB(con)
 	if err != nil {
 		panic(err)
