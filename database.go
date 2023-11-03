@@ -17,7 +17,7 @@ type ConnectionCredentials struct {
 	Database string `json:"Database"`
 }
 
-type CustomerTable struct {
+type CustomerRow struct {
 	ID           int    `json:"ID"`
 	NAME         string `json:"NAME"`
 	EMAIL        string `json:"EMAIL"`
@@ -39,7 +39,7 @@ type CustomerTable struct {
 	    }
 	}
 */
-func scanTableInputs(db *sql.DB) ([]CustomerTable, []string, error) {
+func scanTableInputs(db *sql.DB) ([]CustomerRow, []string, error) {
 
 	rows, err := db.Query("SELECT * FROM Customer;")
 	if err != nil {
@@ -52,19 +52,18 @@ func scanTableInputs(db *sql.DB) ([]CustomerTable, []string, error) {
 		panic(err.Error()) // proper error handling instead of panic in your app
 	}
 
-	rowsData := make([]CustomerTable, len(columns))
+	rowsData := make([]CustomerRow, len(columns))
 
 	for rows.Next() {
-		var rowData CustomerTable
-		err = rows.Scan(&rowData)
+		var rowData CustomerRow
+		err = rows.Scan(&rowData.ID, &rowData.NAME, &rowData.EMAIL, &rowData.DATE_CREATED)
 		if err != nil {
 			panic(err.Error())
 		}
-
 		rowsData = append(rowsData, rowData)
-		// fmt.Println(testtable2.id)
 	}
-	return rowsData, columns, nil
+	fmt.Print(rowsData)
+	return rowsData, columns, err
 }
 
 /*
@@ -75,20 +74,6 @@ func scanTableInputs(db *sql.DB) ([]CustomerTable, []string, error) {
 	// run rows.Scan(&temprows)
 	// then append data to rows slice
 	// print rows data
-
-	// values := make([]sql.RawBytes, len(columns))
-
-	// if err != nil {
-	// 	db.Close()
-	// 	return nil, err
-	// }
-
-	// // db.Ping checks the
-	// err = db.Ping()
-	// if err != nil {
-	// 	db.Close()
-	// 	return nil, err
-	// }
 */
 
 // Reads the json file
@@ -123,30 +108,37 @@ func Connection(y ConnectionCredentials) (*sql.DB, error) {
 	}
 	fmt.Println("Successfully connected")
 
-	// fmt.Print(rows)
+	return db, err
+}
 
-	// Get column names
-	columns, err := rows.Columns()
+func closeDB(db *sql.DB) error {
+	err := db.Close()
 	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
+		return err
 	}
-
-	fmt.Print(columns)
-
-	defer db.Close()
-
-	return db, nil
+	return nil
 }
 
 func main() {
 
 	cred, err := jsonFileReader("credentials.json")
-
 	if err != nil {
 		return
 	}
+
 	fmt.Println("Welcome to MySQL")
-	scanTableInputs(&sql.DB{})
-	Connection(cred)
-	fmt.Printf("\n")
+
+	con, err := Connection(cred)
+	if err != nil {
+		panic(err)
+	}
+
+	scanTableInputs(con)
+
+	fmt.Println("inputs added ")
+
+	err = closeDB(con)
+	if err != nil {
+		panic(err)
+	}
 }
