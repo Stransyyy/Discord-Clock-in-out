@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"database/sql"
@@ -39,7 +39,7 @@ type CustomerRow struct {
 	    }
 	}
 */
-func scanTableInputs(db *sql.DB) ([]CustomerRow, []string, error) {
+func ScanTableInputs(db *sql.DB) ([]CustomerRow, []string, error) {
 
 	rows, err := db.Query("SELECT * FROM Customer;")
 	if err != nil {
@@ -77,7 +77,7 @@ func scanTableInputs(db *sql.DB) ([]CustomerRow, []string, error) {
 */
 
 // Reads the json file
-func jsonFileReader(credentials string) (ConnectionCredentials, error) {
+func JsonFileReader(credentials string) (ConnectionCredentials, error) {
 
 	// f stores the data from the json file
 	var ConnectionInfo ConnectionCredentials
@@ -111,36 +111,10 @@ func Connection(y ConnectionCredentials) (*sql.DB, error) {
 	return db, err
 }
 
-func closeDB(db *sql.DB) error {
+func CloseDB(db *sql.DB) error {
 	err := db.Close()
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-func main() {
-
-	cred, err := jsonFileReader("credentials.json")
-	if err != nil {
-		return
-	}
-
-	fmt.Println("Welcome to MySQL")
-
-	con, err := Connection(cred)
-	if err != nil {
-		panic(err)
-	}
-
-	scanTableInputs(con)
-
-	fmt.Println("inputs added ")
-
-	//SendMessage()
-
-	err = closeDB(con)
-	if err != nil {
-		panic(err)
-	}
 }
