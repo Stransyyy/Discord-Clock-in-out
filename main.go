@@ -1,30 +1,28 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
-	"github.com/Stransyyy/Sheet-Linker/db"
 	"github.com/Stransyyy/Sheet-Linker/dc"
 )
 
 func main() {
-	cred, err := db.JsonFileReader("credentials.json")
-	if err != nil {
-		return
-	}
+	// cred, err := db.JsonFileReader("credentials.json")
+	// if err != nil {
+	// 	return
+	// }
 
-	fmt.Println("Welcome to MySQL")
+	// fmt.Println("Welcome to MySQL")
 
-	con, err := db.Connection(cred)
-	if err != nil {
-		panic(err)
-	}
+	// con, err := db.Connection(cred)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	db.ScanTableInputs(con)
+	// db.ScanTableInputs(con)
 
-	fmt.Println("inputs added ")
+	// fmt.Println("inputs added ")
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -39,8 +37,8 @@ func main() {
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	//Closes connection to the databse
-	err = db.CloseDB(con)
-	if err != nil {
-		panic(err)
-	}
+	// err = db.CloseDB(con)
+	// if err != nil {
+	// 	panic(err)
+	// }
 }
