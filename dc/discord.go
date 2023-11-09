@@ -16,7 +16,7 @@ var (
 
 func Run() {
 	// Creates a new discord session
-	discord, err := discordgo.New("Bot" + BotToken)
+	discord, err := discordgo.New("Bot " + BotToken)
 	if err != nil {
 		log.Fatal("Error creating discord session", err)
 	}
@@ -25,7 +25,12 @@ func Run() {
 	discord.AddHandler(newMessage)
 
 	// Open's and closes with the defer the session
-	discord.Open()
+
+	err = discord.Open()
+	if err != nil {
+		log.Fatal("Could not open session: ", err)
+	}
+
 	defer discord.Close()
 
 	fmt.Println("Bot running...")

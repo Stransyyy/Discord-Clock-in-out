@@ -1,33 +1,72 @@
-CREATE DATABASE 'clock_in';
+-- Drops all tables
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS deleted_messages;
+DROP TABLE IF EXISTS edited_messages;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS channels;
+DROP TABLE IF EXISTS guilds;
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-DROP TABLE IF EXIST 'Worktime';
-CREATE TABLE 'Worktime'(
-    'ID' INT,
-    'Time' Time,
-    PRIMARY KEY('ID')
+-- Creates all tables
+
+CREATE TABLE channels (
+guild_id    BIGINT NOT NULL,
+channel_id  BIGINT NOT NULL,
+channel_id  VARCHAR (2000),
+PRIMARY KEY (channel_id),
+FOREIGN KEY (guild_id) REFERENCES guilds(guild_id)
 );
 
-INSERT INTO 'Worktime' ('ID', 'TIME') VALUES 
-    (0001, '10:00:00'),
-    (0002, '9:50:00'),
-    (0003, '10:10:00'),
-    (0004, '10:05:00'),
-    (0005, '10:00:00'),
-    (0006, '9:55:00');
-
-DROP TABLE IF EXIST 'clock_out';
-CREATE TABLE 'clock_out' (
-    'ID' INT,
-    'Time' TIME,
-    PRIMARY KEY('ID')
+CREATE TABLE messages_Deleted (
+message_id BIGINT NOT NULL,
+channel_id BIGINT NOT NULL,
+author_id  BIGINT NOT NULL,
+guild_id   BIGINT NOT NULL,
+message_content VARCHAR(2000) NOT NULL,
+date_deleted DATE NOT NULL,
+time_deleted TIME NOT NULL,
+FOREIGN KEY (chanel_id) REFERENCES  channels     (channel_id),
+FOREIGN KEY (guild_id) REFERENCES   guilds      (guild_id),
+FOREIGN KEY (author_id) REFERENCES  users        (author_id)
 );
 
-INSERT INTO 'clock_out' ('ID', 'TIME') VALUES 
-(0001, 17:00:00),
-(0002, 17:00:00),
-(0003, 17:00:00),
-(0004, 17:00:00),
-(0005, 17:00:00),
-(0006, 17:00:00);
+CREATE TABLE messages_Edited (
+message_id  BIGINT NOT NULL,
+channel_id  BIGINT NOT NULL,
+author_id   BIGINT NOT NULL,
+guild_id    BIGINT NOT NULL,
+before_edited_content   VARCHAR(2000) NOT NULL,
+after_edited_content    VARCHAR(2000) NOT NULL,
+date_edited DATE NOT NULL,
+time_edited TIME NOT NULL,
+PRIMARY KEY (messag_id),
+FOREIGN KEY (channel_id) REFERENCES channels    (chanel_id),
+FOREIGN KEY (guild_id) REFERENCES   guilds      (guild_id),
+FOREIGN KEY (author_id) REFERENCES  users       (author_id)
+);
 
+CREATE TABLE guilds (
+guild_id BIGINT NOT NULL,
+guild_name VARCHAR(2000),
+PRIMARY KEY (guild_id)
+);
 
+CREATE TABLE messages (
+message_id  BIGINT NOT NULL,
+guild_id    BIGINT NOT NULL,
+channel_id  BIGINT NOT NULL,
+author_id   BIGINT NOT NULL,
+message_content VARCHAR(2000),
+date_sent   DATE NOT NULL,
+time_sent   TIME NOT NULL,
+PRIMARY KEY (message_id),
+FOREIGN KEY (channels)  REFERENCES channels(channel_id),
+FOREIGN KEY (guilds)    REFERENCES guilds(guild_id),
+FOREIGN KEY (users)     REFERENCES users(author_id)
+);
+
+CREATE TABLE users (
+author_id   BIGINT NOT NULL,
+author_tag  BIGINT NOT NULL,
+PRIMARY KEY (author_id)
+);
