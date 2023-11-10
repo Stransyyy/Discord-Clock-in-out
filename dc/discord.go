@@ -46,7 +46,7 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if message.Author.ID == discord.State.User.ID {
 		return
 	}
-	// Respond to User messages using switch statementso we can answer a set of messages
+	// Respond to User messages using switch statementso we can answer a set of  predetermined messages
 	switch {
 	case strings.Contains(message.Content, "time"):
 		discord.ChannelMessageSend(message.ChannelID, "I can provide that information")
@@ -54,51 +54,29 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 		discord.ChannelMessageSend(message.ChannelID, "Hi there!/ Hola!")
 	case strings.Contains(message.Content, "narti"):
 		discord.ChannelMessageSend(message.ChannelID, "NartiBot es una basura")
+	case strings.Contains(message.Content, "ahuevo"):
+		discord.ChannelMessageSend(message.ChannelID, "ahuevo que si como no? ")
+	case strings.Contains(message.Content, "Stransyyy"):
+		discord.ChannelMessageSend(message.ChannelID, "Es el mejor we")
 	}
 
 }
 
-// func RunBot(Token string) {
-// 	dg, err := discordgo.New("Bot" + Token)
-// 	if err != nil {
-// 		fmt.Print("Error creating discord session: ", err)
-// 		return
-// 	}
-
-// 	dg.AddHandler(MessageCreate)
-
-// 	dg.Identify.Intents = discordgo.IntentGuildMessages
-
-// 	err = dg.Open()
-// 	if err != nil {
-// 		fmt.Print("Error opening connection", err)
-// 		return
-// 	}
+// func MandaDatos() *discordgo.ApplicationCom {
 
 // }
 
-// func TerminationSignal(dg *discordgo.Session) {
-// 	fmt.Print("Bot is now running. Press CTRL + C to exit")
-// 	sc := make(chan os.Signal, 1)
-// 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-// 	<-sc
-
-// 	dg.Close()
-// }
-
-// func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-// 	if m.Content == "ping" && m.Author.ID != s.State.User.ID {
-// 		channel, err := s.UserChannelCreate(m.Author.ID)
-// 		if err != nil {
-// 			fmt.Println("Error creating channel:", err)
-// 			s.ChannelMessageSend(m.ChannelID, "Something went wrong while sending the DM!")
-// 			return
-// 		}
-
-// 		_, err = s.ChannelMessageSend(channel.ID, "Pong!")
-// 		if err != nil {
-// 			fmt.Println("Error sending DM message:", err)
-// 			s.ChannelMessageSend(m.ChannelID, "Failed to send you a DM. Did you disable DM in your privacy settings?")
-// 		}
-// 	}
-// }
+func askQuestionApplicationCommand() *discordgo.ApplicationCommand {
+	return &discordgo.ApplicationCommand{
+		Name:        "clock-in",
+		Description: "It is time to clock-in at work!",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "request",
+				Description: "Send your clock-in information to the database",
+				Required:    true,
+			},
+		},
+	}
+}
