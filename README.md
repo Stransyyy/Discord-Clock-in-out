@@ -43,4 +43,4 @@ This Go program simplifies the process of tracking work hours by combining the p
 
 ## Usage
 
-Will have commands for the user and admin end of the application. Like `!clock-in`, `!clock-out`, `!clocked-out-at <time clocked out> ` <- this if for some reason the employee forgets to clock out from work, `!weekly-time <user>`, etc.
+Will have commands for the user and admin end of the application. Like `!clock-in`, `!clock-out`, `!clocked-out-at <time clocked out> ` <- this if for some reason the employee forgets to clock out from work, `!hours-worked <user> <from(date)> <to(date)>`, etc.
