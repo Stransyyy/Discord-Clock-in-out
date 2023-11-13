@@ -24,7 +24,8 @@ type UserData struct {
 }
 
 type QuoteData struct {
-	Quotes []string `json:"quotes"`
+	Quotes  []string `json:"quotes"`
+	Authors []string `json:"author"`
 }
 
 const prefix string = "!bot"
@@ -76,6 +77,12 @@ func QuotesSend() []string {
 	return data.Quotes
 }
 
+func EmbedMessage() {
+	author := discordgo.MessageEmbedAuthor{
+		Name: "",
+	}
+}
+
 func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	// Ignores bot own messages
 	if message.Author.ID == discord.State.User.ID {
@@ -104,16 +111,7 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 		discord.ChannelMessageSend(message.ChannelID, quotes[selection])
 	}
 
-	//embed := []discordgo.MessageEmbed{}
-	// embed = append(embed, &discordgo.MessageEmbed{
-	// 	Title: prompt
-	// })
-
 }
-
-// func MandaDatos() *discordgo.ApplicationCommand {
-
-// }
 
 func askQuestionApplicationCommand() *discordgo.ApplicationCommand {
 	return &discordgo.ApplicationCommand{
