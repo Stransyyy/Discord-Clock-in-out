@@ -13,8 +13,15 @@ import (
 )
 
 var (
-	BotToken string
+	BotToken  string
+	responses map[string]UserData = map[string]UserData{}
 )
+
+type UserData struct {
+	OriginChannelId string
+	Clock_In        int
+	Clock_Out       int
+}
 
 type QuoteData struct {
 	Quotes []string `json:"quotes"`
@@ -49,6 +56,26 @@ func Run() {
 	<-c
 }
 
+func QuotesSend() []string {
+	// Read the JSON file
+	fileContent, err := os.ReadFile("/home/alan/src/golang-api-db/Sheet-Linker/dc/quotes.json")
+	if err != nil {
+		fmt.Println("Error reading the file:", err)
+		return nil
+	}
+
+	// Create an instance of QuoteData
+	var data QuoteData
+
+	// Unmarshal the JSON data into the struct
+	err = json.Unmarshal(fileContent, &data)
+	if err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+		return data.Quotes
+	}
+	return data.Quotes
+}
+
 func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	// Ignores bot own messages
 	if message.Author.ID == discord.State.User.ID {
@@ -66,26 +93,8 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if args[0] != prefix {
 		return
 	}
-
-	// Read the JSON file
-	fileContent, err := os.ReadFile("/home/alan/src/golang-api-db/Sheet-Linker/dc/quotes.json")
-	if err != nil {
-		fmt.Println("Error reading the file:", err)
-		return
-	}
-
-	// Create an instance of QuoteData
-	var data QuoteData
-
-	// Unmarshal the JSON data into the struct
-	err = json.Unmarshal(fileContent, &data)
-	if err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
-		return
-	}
-
 	// Access the quotes as a slice of strings
-	quotes := data.Quotes
+	quotes := QuotesSend()
 
 	// Selects a random quote from the slice of strings of quotes
 	selection := rand.Intn(len(quotes))
@@ -102,7 +111,7 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 
 }
 
-// func MandaDatos() *discordgo.ApplicationCom {
+// func MandaDatos() *discordgo.ApplicationCommand {
 
 // }
 
