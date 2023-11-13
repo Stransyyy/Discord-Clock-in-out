@@ -1,0 +1,84 @@
+package dc
+// This will handle the commands of the bot
+func prueba() {
+    defer func() {
+        if err := recover(); err != nil {
+            log(fmt.Sprintf("panic occurred: %v", err))
+        }
+    }()
+
+    s, serr := discordgo.New("Bot " + os.Getenv("BOT_TOKEN"))
+
+    if serr != nil {
+        panic(serr)
+    }
+
+    defer s.Close()
+
+    s.SyncEvents = false
+
+    commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+        "clock-in": createLocation,
+        "clock-out":    askQuestion,
+        "clocked-out":  generateImage,
+        "hours-worked":  codeGenerator,
+    }
+
+    s.Identify.Intents = discordgo.IntentGuildMessages
+
+    s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+        if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+            h(s, i)
+        }
+    })
+
+    if oerr := s.Open(); oerr != nil {
+        panic(oerr)
+    }
+
+    commands := []*discordgo.ApplicationCommand{
+        getCreateLocationApplicationCommand(),
+        askQuestionApplicationCommand(),
+        generateImageApplicationCommand(),
+        codeGeneratorApplicationCommand(),
+    }
+
+    for _, c := range commands {
+        _, cmderr := s.ApplicationCommandCreate(os.Getenv("BOT_APP_ID"), "", c)
+
+        if cmderr != nil {
+            panic(cmderr)
+        }
+    }
+
+    s.ChannelMessageSend(bobonautChannelId, "I'm back! Wires all cleaned up, I'm ready to run!")
+
+    stop := make(chan os.Signal, 1)
+    signal.Notify(stop, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+    <-stop
+
+    s.ChannelMessageSend(bobonautChannelId, "I'm powering down for a little while to learn a new skill!")
+
+    s.Close()
+}
+
+for iod, d := range resp.Data {
+    msgEmbeds = append(msgEmbeds, &discordgo.MessageEmbed{
+        Title: prompt,
+        URL:   "https://vitalitysouth.com/",
+        Image: &discordgo.MessageEmbedImage{
+            URL:    d.URL,
+            Width:  maxImageWidth,
+            Height: maxImageHeight,
+        },
+        Color: aquaEmbed,
+    })
+
+    btn := discordgo.Button{
+        Label: fmt.Sprintf("Image %d", iod+1),
+        Style: discordgo.LinkButton,
+        URL:   d.URL,
+    }
+
+    compRow.Components = append(compRow.Components, btn)
+}

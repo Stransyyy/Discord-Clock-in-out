@@ -1,8 +1,10 @@
 package dc
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,6 +15,12 @@ import (
 var (
 	BotToken string
 )
+
+type QuoteData struct {
+	Quotes []string `json:"quotes"`
+}
+
+const prefix string = "!bot"
 
 func Run() {
 	// Creates a new discord session
@@ -46,19 +54,51 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if message.Author.ID == discord.State.User.ID {
 		return
 	}
+
 	// Respond to User messages using switch statementso we can answer a set of  predetermined messages
 	switch {
 	case strings.Contains(message.Content, "time"):
 		discord.ChannelMessageSend(message.ChannelID, "I can provide that information")
-	case strings.Contains(message.Content, "bot"):
-		discord.ChannelMessageSend(message.ChannelID, "Hi there!/ Hola!")
-	case strings.Contains(message.Content, "narti"):
-		discord.ChannelMessageSend(message.ChannelID, "NartiBot es una basura")
-	case strings.Contains(message.Content, "ahuevo"):
-		discord.ChannelMessageSend(message.ChannelID, "ahuevo que si como no? ")
-	case strings.Contains(message.Content, "Stransyyy"):
-		discord.ChannelMessageSend(message.ChannelID, "Es el mejor we")
 	}
+
+	args := strings.Split(message.Content, " ")
+
+	if args[0] != prefix {
+		return
+	}
+
+	// Read the JSON file
+	fileContent, err := os.ReadFile("/home/alan/src/golang-api-db/Sheet-Linker/dc/quotes.json")
+	if err != nil {
+		fmt.Println("Error reading the file:", err)
+		return
+	}
+
+	// Create an instance of QuoteData
+	var data QuoteData
+
+	// Unmarshal the JSON data into the struct
+	err = json.Unmarshal(fileContent, &data)
+	if err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+		return
+	}
+
+	// Access the quotes as a slice of strings
+	quotes := data.Quotes
+
+	// Selects a random quote from the slice of strings of quotes
+	selection := rand.Intn(len(quotes))
+
+	// The bot prints a random quote using the !bot prefix
+	if args[1] == "quotes" {
+		discord.ChannelMessageSend(message.ChannelID, quotes[selection])
+	}
+
+	//embed := []discordgo.MessageEmbed{}
+	// embed = append(embed, &discordgo.MessageEmbed{
+	// 	Title: prompt
+	// })
 
 }
 
