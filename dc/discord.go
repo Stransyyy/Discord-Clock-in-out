@@ -27,8 +27,10 @@ type UserData struct {
 }
 
 type QuoteData struct {
-	Quotes  []string `json:"quotes"`
-	Authors []string `json:"author"`
+	Quotes []struct {
+		Quote  string `json:"quote"`
+		Author string `json:"author"`
+	} `json:"quotes"`
 }
 
 const prefix string = "!bot"
@@ -48,6 +50,32 @@ func Run() {
 	err = discord.Open()
 	if err != nil {
 		log.Fatal("Could not open session: ", err)
+	}
+
+	discord.SyncEvents = false
+
+	commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"clockin": ClockIn,
+	}
+
+	discord.Identify.Intents = discordgo.IntentGuildMessages
+
+	discord.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+			h(s, i)
+		}
+	})
+
+	commands := []*discordgo.ApplicationCommand{
+		clockinTimeCommand(),
+	}
+
+	for _, c := range commands {
+		_, cmderr := discord.ApplicationCommandCreate(os.Getenv("BOT_APP_ID"), "", c)
+
+		if cmderr != nil {
+			panic(cmderr)
+		}
 	}
 
 	defer discord.Close()
@@ -75,9 +103,17 @@ func QuotesSend() []string {
 	err = json.Unmarshal(fileContent, &data)
 	if err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
-		return data.Quotes
+
+		return []string{}
 	}
-	return data.Quotes
+
+	var quotes []string
+
+	for _, q := range data.Quotes {
+		quotes = append(quotes, fmt.Sprintf("%s - %s", q.Quote, q.Author))
+	}
+
+	return quotes
 }
 
 func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
@@ -109,40 +145,15 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if args[1] == "quotes" {
 		discord.ChannelMessageSend(message.ChannelID, quotes[selection])
 	}
-
-	commandHandler := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"clock-in": ClockIn,
-	}
-
-	commands := []*discordgo.ApplicationCommand{
-		clockinTimeCommand(),
-	}
-
-	for _, c := range commands {
-		_, cmnderr := discord.ApplicationCommandCreate(os.Getenv(StransyyyBotChanneId), "", c)
-
-		if cmnderr != nil {
-			panic(cmnderr)
-		}
-	}
-
-	discord.AddHandler(func(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
-		if h, ok := commandHandler[interaction.ApplicationCommandData().Name]; ok {
-			h(session, interaction)
-		}
-	})
-
 }
 
 func clockinTimeCommand() *discordgo.ApplicationCommand {
 	return &discordgo.ApplicationCommand{
-		Name:        "Clock-In",
+		Name:        "clockin",
 		Description: "Run this command to clock in to work!",
 	}
-
 }
 
 func ClockIn(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
-
 	session.ChannelMessageSend(StransyyyBotChanneId, "Clock-In? we still don't have that option yet, come back and use it soon.")
 }
