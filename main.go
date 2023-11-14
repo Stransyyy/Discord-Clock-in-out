@@ -31,7 +31,13 @@ func main() {
 		log.Fatal("Must set Discord token as env variable: DISCORD_APIKEY")
 	}
 
+	stransyyyBotChanneId, ok := os.LookupEnv("BOT_TOKEN")
+	if !ok {
+		log.Fatal("Must set Discord token as env variable: DISCORD_APIKEY")
+	}
+
 	dc.BotToken = botToken
+	dc.StransyyyBotChanneId = stransyyyBotChanneId
 	dc.Run()
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////

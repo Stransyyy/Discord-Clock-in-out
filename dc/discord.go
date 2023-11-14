@@ -15,6 +15,9 @@ import (
 var (
 	BotToken  string
 	responses map[string]UserData = map[string]UserData{}
+
+	// Discord server ID
+	StransyyyBotChanneId string
 )
 
 type UserData struct {
@@ -77,12 +80,6 @@ func QuotesSend() []string {
 	return data.Quotes
 }
 
-func EmbedMessage() {
-	author := discordgo.MessageEmbedAuthor{
-		Name: "",
-	}
-}
-
 func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	// Ignores bot own messages
 	if message.Author.ID == discord.State.User.ID {
@@ -93,6 +90,8 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	switch {
 	case strings.Contains(message.Content, "time"):
 		discord.ChannelMessageSend(message.ChannelID, "I can provide that information")
+	case strings.Contains(message.Content, "hola"):
+		discord.ChannelMessageSend(message.ChannelID, "Hola Jersey")
 	}
 
 	args := strings.Split(message.Content, " ")
@@ -111,19 +110,39 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 		discord.ChannelMessageSend(message.ChannelID, quotes[selection])
 	}
 
+	commandHandler := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"clock-in": ClockIn,
+	}
+
+	commands := []*discordgo.ApplicationCommand{
+		clockinTimeCommand(),
+	}
+
+	for _, c := range commands {
+		_, cmnderr := discord.ApplicationCommandCreate(os.Getenv(StransyyyBotChanneId), "", c)
+
+		if cmnderr != nil {
+			panic(cmnderr)
+		}
+	}
+
+	discord.AddHandler(func(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+		if h, ok := commandHandler[interaction.ApplicationCommandData().Name]; ok {
+			h(session, interaction)
+		}
+	})
+
 }
 
-func askQuestionApplicationCommand() *discordgo.ApplicationCommand {
+func clockinTimeCommand() *discordgo.ApplicationCommand {
 	return &discordgo.ApplicationCommand{
-		Name:        "clock-in",
-		Description: "It is time to clock-in at work!",
-		Options: []*discordgo.ApplicationCommandOption{
-			{
-				Type:        discordgo.ApplicationCommandOptionString,
-				Name:        "request",
-				Description: "Send your clock-in information to the database",
-				Required:    true,
-			},
-		},
+		Name:        "Clock-In",
+		Description: "Run this command to clock in to work!",
 	}
+
+}
+
+func ClockIn(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+
+	session.ChannelMessageSend(StransyyyBotChanneId, "Clock-In? we still don't have that option yet, come back and use it soon.")
 }
