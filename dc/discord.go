@@ -155,5 +155,21 @@ func clockinTimeCommand() *discordgo.ApplicationCommand {
 }
 
 func ClockIn(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+
 	session.ChannelMessageSend(StransyyyBotChanneId, "Clock-In? we still don't have that option yet, come back and use it soon.")
+
+	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	})
+
+	if err != nil {
+		return
+	}
+
+	_, serr := session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{})
+
+	if serr != nil {
+		panic(serr)
+	}
+
 }
