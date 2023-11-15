@@ -66,15 +66,15 @@ func Run() {
 		}
 	})
 
-	commands := []*discordgo.ApplicationCommand{
-		clockinTimeCommand(),
-	}
+	var commands []*discordgo.ApplicationCommand
+
+	commands = append(commands, clockinTimeCommand())
 
 	for _, c := range commands {
 		_, cmderr := discord.ApplicationCommandCreate(os.Getenv("BOT_APP_ID"), "", c)
 
 		if cmderr != nil {
-			panic(cmderr)
+			log.Fatal("This is the commands error at line 76", err)
 		}
 	}
 
@@ -154,9 +154,17 @@ func clockinTimeCommand() *discordgo.ApplicationCommand {
 	}
 }
 
+func Embeds() {
+
+}
+
 func ClockIn(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 
-	session.ChannelMessageSend(StransyyyBotChanneId, "Clock-In? we still don't have that option yet, come back and use it soon.")
+	_, ok := session.ChannelMessageSend("1172648319940558970", "Stransyyy bot esta siendo usado...")
+
+	if ok != nil {
+		panic(ok)
+	}
 
 	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
@@ -166,7 +174,9 @@ func ClockIn(session *discordgo.Session, interaction *discordgo.InteractionCreat
 		return
 	}
 
-	_, serr := session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{})
+	_, serr := session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
+		Content: "hello",
+	})
 
 	if serr != nil {
 		panic(serr)
