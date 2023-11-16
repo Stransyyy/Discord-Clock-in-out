@@ -55,7 +55,7 @@ func Run() {
 	discord.SyncEvents = false
 
 	commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"clockin": ClockIn,
+		"clockin": ClockInResponse,
 	}
 
 	discord.Identify.Intents = discordgo.IntentGuildMessages
@@ -131,10 +131,10 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	}
 
 	args := strings.Split(message.Content, " ")
-
 	if args[0] != prefix {
 		return
 	}
+
 	// Access the quotes as a slice of strings
 	quotes := QuotesSend()
 
@@ -145,6 +145,9 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if args[1] == "quotes" {
 		discord.ChannelMessageSend(message.ChannelID, quotes[selection])
 	}
+
+	discord.ChannelMessageSendEmbed("prueba", clockEmbed())
+
 }
 
 func clockinTimeCommand() *discordgo.ApplicationCommand {
@@ -152,13 +155,26 @@ func clockinTimeCommand() *discordgo.ApplicationCommand {
 		Name:        "clockin",
 		Description: "Run this command to clock in to work!",
 	}
-}
-
-func Embeds() {
 
 }
 
-func ClockIn(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func clockEmbed() *discordgo.MessageEmbed {
+
+	image := discordgo.MessageEmbedImage{
+		URL: "https://img.craiyon.com/2023-11-16/884s_1eZTiepm3y9B6d7nA.webp",
+	}
+
+	embed := discordgo.MessageEmbed{
+		Title:       "Clock-In",
+		Description: "Use this command to let you clock-inh and send your data to the database",
+		Timestamp:   "",
+		Image:       &image,
+	}
+
+	return &embed
+}
+
+func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 
 	_, ok := session.ChannelMessageSend("1172648319940558970", "Stransyyy bot esta siendo usado...")
 
