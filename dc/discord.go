@@ -14,16 +14,15 @@ import (
 
 var (
 	BotToken  string
-	responses map[string]UserData = map[string]UserData{}
+	responses map[string]UserDM = map[string]UserDM{}
 
 	// Discord server ID
 	StransyyyBotChanneId string
 )
 
-type UserData struct {
-	OriginChannelId string
-	Clock_In        int
-	Clock_Out       int
+type UserDM struct {
+	TotalTime  int
+	WantToKnow string
 }
 
 type QuoteData struct {
@@ -64,6 +63,11 @@ func Run() {
 		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
 		}
+	})
+
+	discord.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+		discord.ChannelMessageSendEmbed(m.ChannelID, clockInEmbed())
 	})
 
 	var commands []*discordgo.ApplicationCommand
@@ -116,6 +120,7 @@ func QuotesSend() []string {
 	return quotes
 }
 
+// newMessage sends a new message. Does not reply to slash commands
 func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	// Ignores bot own messages
 	if message.Author.ID == discord.State.User.ID {
@@ -124,12 +129,13 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 
 	// Respond to User messages using switch statementso we can answer a set of  predetermined messages
 	switch {
-	case strings.Contains(message.Content, "time"):
+	case strings.Contains(message.Content, ""):
 		discord.ChannelMessageSend(message.ChannelID, "I can provide that information")
 	case strings.Contains(message.Content, "hola"):
 		discord.ChannelMessageSend(message.ChannelID, "Hola Jersey")
 	}
 
+	// let the user use !bot and the key word just for the bot to reply to that specific input
 	args := strings.Split(message.Content, " ")
 	if args[0] != prefix {
 		return
@@ -146,10 +152,9 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 		discord.ChannelMessageSend(message.ChannelID, quotes[selection])
 	}
 
-	discord.ChannelMessageSendEmbed("prueba", clockEmbed())
-
 }
 
+// clockInTimeCommand on discord is the part where you use the slash command and shows a preview with the name of the command and the description of it
 func clockinTimeCommand() *discordgo.ApplicationCommand {
 	return &discordgo.ApplicationCommand{
 		Name:        "clockin",
@@ -158,7 +163,8 @@ func clockinTimeCommand() *discordgo.ApplicationCommand {
 
 }
 
-func clockEmbed() *discordgo.MessageEmbed {
+// clockInEmbed will send an embed
+func clockInEmbed() *discordgo.MessageEmbed {
 
 	image := discordgo.MessageEmbedImage{
 		URL: "https://img.craiyon.com/2023-11-16/884s_1eZTiepm3y9B6d7nA.webp",
@@ -174,6 +180,7 @@ func clockEmbed() *discordgo.MessageEmbed {
 	return &embed
 }
 
+// ClockInResponse sends the response of the bot when you use the slash command
 func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 
 	_, ok := session.ChannelMessageSend("1172648319940558970", "Stransyyy bot esta siendo usado...")
