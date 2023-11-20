@@ -20,11 +20,13 @@ var (
 	StransyyyBotChanneId string
 )
 
+// Will handle the DM and answers back from the user
 type UserDM struct {
 	TotalTime  int
 	WantToKnow string
 }
 
+// JSON Quote data
 type QuoteData struct {
 	Quotes []struct {
 		Quote  string `json:"quote"`
@@ -65,11 +67,6 @@ func Run() {
 		}
 	})
 
-	discord.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-
-		discord.ChannelMessageSendEmbed(m.ChannelID, clockInEmbed())
-	})
-
 	var commands []*discordgo.ApplicationCommand
 
 	commands = append(commands, clockinTimeCommand())
@@ -78,7 +75,7 @@ func Run() {
 		_, cmderr := discord.ApplicationCommandCreate(os.Getenv("BOT_APP_ID"), "", c)
 
 		if cmderr != nil {
-			log.Fatal("This is the commands error at line 76", err)
+			log.Fatal("This is the commands error at line 76", cmderr)
 		}
 	}
 
@@ -129,7 +126,7 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 
 	// Respond to User messages using switch statementso we can answer a set of  predetermined messages
 	switch {
-	case strings.Contains(message.Content, ""):
+	case strings.Contains(message.Content, "time"):
 		discord.ChannelMessageSend(message.ChannelID, "I can provide that information")
 	case strings.Contains(message.Content, "hola"):
 		discord.ChannelMessageSend(message.ChannelID, "Hola Jersey")
@@ -183,7 +180,8 @@ func clockInEmbed() *discordgo.MessageEmbed {
 // ClockInResponse sends the response of the bot when you use the slash command
 func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 
-	_, ok := session.ChannelMessageSend("1172648319940558970", "Stransyyy bot esta siendo usado...")
+	channelID := "1172648319940558970"
+	_, ok := session.ChannelMessageSend(channelID, "Stransyyy bot esta siendo usado...")
 
 	if ok != nil {
 		panic(ok)
@@ -203,6 +201,40 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 
 	if serr != nil {
 		panic(serr)
+	}
+
+	aquaEmbed := 1752220
+
+	msgEmbed := []*discordgo.MessageEmbed{}
+
+	msgEmbed = append(msgEmbed, &discordgo.MessageEmbed{
+		Title: "ClockIn",
+		URL:   "https://vitalitysouth.com/",
+		Image: clockInEmbed().Image,
+		Color: aquaEmbed,
+	})
+
+	msgData := &discordgo.WebhookParams{
+		Embeds:     msgEmbed,
+		Components: []discordgo.MessageComponent{},
+	}
+
+	_, smerr := session.FollowupMessageCreate(interaction.Interaction, false, msgData)
+
+	if smerr != nil {
+		log.Fatal(fmt.Sprintf("followup message create with embeds: %v", smerr))
+
+		session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Title:       "Clockin",
+					Description: "Discord isn't letting me send my full response. I would much rather have gone with another product than stay here with Discord. I don't know what all this trouble is about, but I'm sure it must be Discord's fault.",
+					Color:       aquaEmbed,
+				},
+			},
+		})
+
+		return
 	}
 
 }
