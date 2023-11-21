@@ -290,6 +290,13 @@ func clockOutEmbed() []*discordgo.MessageEmbed {
 // }
 
 func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+
+	channelID := "1172648319940558970"
+	_, ok := session.ChannelMessageSend(channelID, "Stransyyy bot esta siendo usado...")
+	if ok != nil {
+		log.Fatal("Is the error here?", ok)
+	}
+
 	// Check if interaction or interaction.Interaction is nil
 	if interaction == nil || interaction.Interaction == nil {
 		log.Println("Invalid interaction object")
@@ -311,9 +318,23 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 	// Respond to the slash command interaction with a deferred response
 	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "You have clocked-in succesfully!",
+		},
 	})
 	if err != nil {
 		log.Println("Error responding to interaction:", err)
+		return
+	}
+
+	//FollowUp message after you use the command
+
+	mensaje := &discordgo.WebhookParams{
+		Content: "You have Clocked-in successfuly",
+	}
+
+	_, err = session.FollowupMessageCreate(interaction.Interaction, false, mensaje)
+	if err != nil {
 		return
 	}
 
@@ -345,34 +366,60 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 		log.Fatal("Is the error here?", ok)
 	}
 
+	if interaction == nil || interaction.Interaction == nil {
+		log.Println("Invalid interaction object")
+		return
+	}
+
+	// userID := func() string {
+	// 	if interaction.User != nil {
+	// 		return interaction.User.ID
+	// 	}
+
+	// 	if interaction.Member != nil {
+	// 		return interaction.Member.User.ID
+	// 	}
+
+	// 	return ""
+	// }()
+
+	// Respond to the slash command interaction with a deferred response
 	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 	})
-
 	if err != nil {
+		log.Println("Error responding to interaction:", err)
 		return
 	}
 
-	embed := clockOutEmbed()
+	// err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+	// 	Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	// })
 
-	clockOutMsgData := &discordgo.WebhookParams{
-		Embeds:     embed,
-		Components: []discordgo.MessageComponent{},
-	}
+	// if err != nil {
+	// 	return
+	// }
 
-	_, smerr := session.FollowupMessageCreate(interaction.Interaction, false, clockOutMsgData)
+	// embed := clockOutEmbed()
 
-	if smerr != nil {
-		log.Fatal(fmt.Sprintf("Follow up message create with embeds: %v", smerr))
-		session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
-			Embeds: []*discordgo.MessageEmbed{
-				{
-					Title:       "Clockout",
-					Description: "Discord isn't letting me send my full response. I wou ld much rather have gone with another product than stay here with Discord. I don't know what all this trouble is about, but I'm sure it must be Discord's fault.",
-					Color:       10038562,
-				},
-			},
-		})
-		return
-	}
+	// clockOutMsgData := &discordgo.WebhookParams{
+	// 	Embeds:     embed,
+	// 	Components: []discordgo.MessageComponent{},
+	// }
+
+	// _, smerr := session.FollowupMessageCreate(interaction.Interaction, false, clockOutMsgData)
+
+	// if smerr != nil {
+	// 	log.Fatal(fmt.Sprintf("Follow up message create with embeds: %v", smerr))
+	// 	session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
+	// 		Embeds: []*discordgo.MessageEmbed{
+	// 			{
+	// 				Title:       "Clockout",
+	// 				Description: "Discord isn't letting me send my full response. I wou ld much rather have gone with another product than stay here with Discord. I don't know what all this trouble is about, but I'm sure it must be Discord's fault.",
+	// 				Color:       10038562,
+	// 			},
+	// 		},
+	// 	})
+	// 	return
+	// }
 }
