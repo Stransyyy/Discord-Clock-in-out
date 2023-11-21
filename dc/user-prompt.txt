@@ -1,0 +1,25 @@
+package dc
+
+import (
+	"fmt"
+
+	"github.com/bwmarrin/discordgo"
+)
+
+// Will handle the DM and answers back from the user
+type UserDM struct {
+	TotalTime  int
+	WantToKnow string
+}
+
+func UserPromptHandler(session *discordgo.Session, message *discordgo.MessageCreate) *discordgo.Session {
+	chann, err := session.UserChannelCreate(message.Author.ID)
+
+	if err != nil {
+		fmt.Print("Error creating channel:", err)
+	}
+
+	session.ChannelMessageSend(chann.ID, "Does this work?")
+
+	return session
+}
