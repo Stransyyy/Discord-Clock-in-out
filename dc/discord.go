@@ -338,17 +338,27 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 	}
 }
 
-func DiscordDataBase(db *sql.DB, message *discordgo.MessageCreate) sql.Result {
+func DiscordDataBase(db *sql.DB, message *discordgo.MessageCreate, session *discordgo.Session) sql.Result {
 
+	// Access the channel information
+	channel, err := session.State.Channel(message.ChannelID)
+	if err != nil {
+		fmt.Println("Error getting channel information:", err)
+	}
+
+	channelName := channel.Name
 	messageID := message.ID
 	authorID := message.Author.ID
 	messageContent := message.Content
 	messageTimestamp := message.Timestamp
 	formattedTimestamp := messageTimestamp.Format(time.RFC3339)
+	channelID := message.ChannelID
 
-	resultado, err := db.Exec("INSERT INTO messages (message_id, author_id, message_content, date_sent, time_sent) VALUES (?, ?, ?, ?, ?)", messageID, authorID, messageContent, messageTimestamp, formattedTimestamp)
+	resultado, derr := db.Exec("INSERT INTO messages (message_id, author_id, message_content, date_sent, time_sent) VALUES (?, ?, ?, ?, ?)", messageID, authorID, messageContent, messageTimestamp, formattedTimestamp)
+	resultado, derr = db.Exec("INSERT INTO users (author_id) VALUES (?)", authorID)
+	resultado, derr = db.Exec("INSERT INTO channels (channel_id, channel_name) VALUES (?, ?)", channelID, channelName)
 
-	if err != nil {
+	if derr != nil {
 		log.Fatal("Can't insert data into the database:", err)
 	}
 
