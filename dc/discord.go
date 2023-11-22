@@ -1,6 +1,7 @@
 package dc
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,8 +9,10 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -182,113 +185,24 @@ func clockInEmbed() *discordgo.MessageEmbed {
 }
 
 // clockOutEmbed is the set up for the clock-out embed
-func clockOutEmbed() []*discordgo.MessageEmbed {
+func clockOutEmbed() *discordgo.MessageEmbed {
 
 	image := discordgo.MessageEmbedImage{
 		URL: "https://img.craiyon.com/2023-11-20/lwkWz-yhSRKqMl38plwCqw.webp",
 	}
 
-	embed := []*discordgo.MessageEmbed{}
-
-	embed = append(embed, &discordgo.MessageEmbed{
+	embed := &discordgo.MessageEmbed{
 		URL:         "https://vitalitysouth.com/",
 		Title:       "Clock-Out",
 		Description: "",
 		Color:       15548997,
 		Image:       &image,
-	})
+	}
 
 	return embed
 }
 
-// ClockInResponse sends the response of the bot when you use the slash command
-// func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
-
-// 	userID := interaction.User.ID
-
-// 	channelID := "1172648319940558970"
-
-// 	_, ok := session.ChannelMessageSend(channelID, "Stransyyy bot esta siendo usado...")
-// 	if ok != nil {
-// 		panic(ok)
-// 	}
-
-// 	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-// 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-// 	})
-// 	if err != nil {
-// 		return
-// 	}
-
-// 	// _, serr := session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
-// 	// 	Content: "hello",
-// 	// })
-
-// 	// if serr != nil {
-// 	// 	panic(serr)
-// 	// }
-
-// 	aquaEmbed := 1752220
-// 	msgEmbed := []*discordgo.MessageEmbed{}
-// 	msgEmbed = append(msgEmbed, &discordgo.MessageEmbed{
-// 		Title: "ClockIn",
-// 		URL:   "https://vitalitysouth.com/",
-// 		Image: clockInEmbed().Image,
-// 		Color: aquaEmbed,
-// 	})
-
-// 	clockinmsgData := &discordgo.WebhookParams{
-// 		Embeds:     msgEmbed,
-// 		Components: []discordgo.MessageComponent{},
-// 	}
-
-// 	_, smerr := session.FollowupMessageCreate(interaction.Interaction, false, clockinmsgData)
-
-// 	if smerr != nil {
-// 		log.Fatal(fmt.Sprintf("followup message create with embeds: %v", smerr))
-// 		session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
-// 			Embeds: []*discordgo.MessageEmbed{
-// 				{
-// 					Title:       "Clockin",
-// 					Description: "Discord isn't letting me send my full response. I would much rather have gone with another product than stay here with Discord. I don't know what all this trouble is about, but I'm sure it must be Discord's fault.",
-// 					Color:       aquaEmbed,
-// 				},
-// 			},
-// 		})
-// 		return
-// 	}
-
-// 	channel, err := session.UserChannelCreate(userID)
-
-// 	if err != nil {
-// 		log.Println("Error creating the channel:", err)
-// 		return
-// 	}
-
-// 	session.ChannelMessageSend(channel.ID, "You have succesfully clocked in")
-
-// 	// Respond to the slash command interaction in the server
-// 	err = session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-// 		Type: discordgo.InteractionResponseChannelMessageWithSource,
-// 		Data: &discordgo.InteractionResponseData{
-// 			Content: "You have successfully clocked in!",
-// 		},
-// 	})
-
-// }
-
-// func getUserID(interaction *discordgo.InteractionCreate) string {
-// 	if interaction.User != nil {
-// 		return interaction.User.ID
-// 	}
-
-// 	if interaction.Member != nil {
-// 		return interaction.Member.User.ID
-// 	}
-
-// 	return ""
-// }
-
+// ClockInResponse is the message the bot sends and the actions it takes whenever is being used
 func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 
 	channelID := "1172648319940558970"
@@ -328,7 +242,6 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 	}
 
 	//FollowUp message after you use the command
-
 	mensaje := &discordgo.WebhookParams{
 		Content: "You have Clocked-in successfuly",
 	}
@@ -366,60 +279,78 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 		log.Fatal("Is the error here?", ok)
 	}
 
+	// Check if interaction or interaction.Interaction is nil
 	if interaction == nil || interaction.Interaction == nil {
 		log.Println("Invalid interaction object")
 		return
 	}
 
-	// userID := func() string {
-	// 	if interaction.User != nil {
-	// 		return interaction.User.ID
-	// 	}
+	userID := func() string {
+		if interaction.User != nil {
+			return interaction.User.ID
+		}
 
-	// 	if interaction.Member != nil {
-	// 		return interaction.Member.User.ID
-	// 	}
+		if interaction.Member != nil {
+			return interaction.Member.User.ID
+		}
 
-	// 	return ""
-	// }()
+		return ""
+	}()
 
 	// Respond to the slash command interaction with a deferred response
 	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "You have clocked-Out succesfully!",
+		},
 	})
 	if err != nil {
 		log.Println("Error responding to interaction:", err)
 		return
 	}
 
-	// err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-	// 	Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-	// })
+	//FollowUp message after you use the command
+	mensaje := &discordgo.WebhookParams{
+		Content: "You have Clocked-Out successfuly, you can now rest!",
+	}
 
-	// if err != nil {
-	// 	return
-	// }
+	_, err = session.FollowupMessageCreate(interaction.Interaction, false, mensaje)
+	if err != nil {
+		return
+	}
 
-	// embed := clockOutEmbed()
+	// Create a DM channel with the user who used the command
+	dmChannel, err := session.UserChannelCreate(userID)
+	if err != nil {
+		log.Println("Error creating DM channel:", err)
+		return
+	}
 
-	// clockOutMsgData := &discordgo.WebhookParams{
-	// 	Embeds:     embed,
-	// 	Components: []discordgo.MessageComponent{},
-	// }
+	// Send a message with an embed to the user in the DM channel (this will be something else)
+	if dmChannel != nil && dmChannel.ID != "" {
+		_, dmErr := session.ChannelMessageSendEmbed(dmChannel.ID, clockOutEmbed())
 
-	// _, smerr := session.FollowupMessageCreate(interaction.Interaction, false, clockOutMsgData)
+		if dmErr != nil {
+			log.Println("Error sending DM with embed:", dmErr)
+		}
+	} else {
+		log.Println("Invalid DM channel")
+	}
+}
 
-	// if smerr != nil {
-	// 	log.Fatal(fmt.Sprintf("Follow up message create with embeds: %v", smerr))
-	// 	session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
-	// 		Embeds: []*discordgo.MessageEmbed{
-	// 			{
-	// 				Title:       "Clockout",
-	// 				Description: "Discord isn't letting me send my full response. I wou ld much rather have gone with another product than stay here with Discord. I don't know what all this trouble is about, but I'm sure it must be Discord's fault.",
-	// 				Color:       10038562,
-	// 			},
-	// 		},
-	// 	})
-	// 	return
-	// }
+func DiscordDataBase(db *sql.DB, message *discordgo.MessageCreate) sql.Result {
+
+	messageID := message.ID
+	authorID := message.Author.ID
+	messageContent := message.Content
+	messageTimestamp := message.Timestamp
+	formattedTimestamp := messageTimestamp.Format(time.RFC3339)
+
+	resultado, err := db.Exec("INSERT INTO messages (message_id, author_id, message_content, date_sent, time_sent) VALUES (?, ?, ?, ?, ?)", messageID, authorID, messageContent, messageTimestamp, formattedTimestamp)
+
+	if err != nil {
+		log.Fatal("Can't insert data into the database:", err)
+	}
+
+	return resultado
 }
