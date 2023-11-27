@@ -17,8 +17,7 @@ import (
 
 var (
 	BotToken string
-	//responses map[string]UserDM = map[string]UserDM{}
-
+	db       *sql.DB
 	// Discord server ID
 	StransyyyBotChanneId string
 )
@@ -124,12 +123,15 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 		return
 	}
 
+	// Handles the mention of the user
+	mencionString := "<@" + message.Author.ID + ">"
+
 	// Respond to User messages using switch statementso we can answer a set of  predetermined messages
 	switch {
 	case strings.Contains(message.Content, "time"):
 		discord.ChannelMessageSend(message.ChannelID, "I can provide that information")
 	case strings.Contains(message.Content, "hola"):
-		discord.ChannelMessageSend(message.ChannelID, "Hola Jersey")
+		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Hola %s", mencionString))
 	}
 
 	// let the user use !bot and the key word just for the bot to reply to that specific input
@@ -175,6 +177,7 @@ func clockInEmbed() *discordgo.MessageEmbed {
 		URL: "https://pics.craiyon.com/2023-11-07/4db06060d78340a29c18a0436d9eaa56.webp",
 	}
 
+	// Embed content
 	embed := discordgo.MessageEmbed{
 		URL:         "https://vitalitysouth.com/",
 		Title:       "Clock-In",
@@ -193,6 +196,7 @@ func clockOutEmbed() *discordgo.MessageEmbed {
 		URL: "https://img.craiyon.com/2023-11-20/lwkWz-yhSRKqMl38plwCqw.webp",
 	}
 
+	// Embed content
 	embed := &discordgo.MessageEmbed{
 		URL:         "https://vitalitysouth.com/",
 		Title:       "Clock-Out",
