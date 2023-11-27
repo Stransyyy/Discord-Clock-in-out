@@ -172,12 +172,14 @@ func clockoutTimeCommand() *discordgo.ApplicationCommand {
 // clockInEmbed will send an embed
 func clockInEmbed() *discordgo.MessageEmbed {
 	image := discordgo.MessageEmbedImage{
-		URL: "https://img.craiyon.com/2023-11-16/884s_1eZTiepm3y9B6d7nA.webp",
+		URL: "https://pics.craiyon.com/2023-11-07/4db06060d78340a29c18a0436d9eaa56.webp",
 	}
 
 	embed := discordgo.MessageEmbed{
+		URL:         "https://vitalitysouth.com/",
 		Title:       "Clock-In",
-		Description: "Use this command to let you clock-in and send your data to the database",
+		Description: "",
+		Color:       5763719,
 		Image:       &image,
 	}
 
@@ -326,6 +328,22 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 		return
 	}
 
+	// Insert inputs to the database whenever the slash command is being used
+	result, updatedSession, dbErr := DiscordDataBase(nil, nil, session)
+	if dbErr != nil {
+		log.Println("Error storing data in the database:", dbErr)
+	}
+
+	// Check the result of the database operation
+	if result != nil {
+		log.Println("Database operation successful:", result)
+	}
+
+	// Use the updated session if it's not nil
+	if updatedSession != nil {
+		log.Println("Session updated successfully")
+	}
+
 	// Send a message with an embed to the user in the DM channel (this will be something else)
 	if dmChannel != nil && dmChannel.ID != "" {
 		_, dmErr := session.ChannelMessageSendEmbed(dmChannel.ID, clockOutEmbed())
@@ -338,12 +356,11 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 	}
 }
 
-func DiscordDataBase(db *sql.DB, message *discordgo.MessageCreate, session *discordgo.Session) sql.Result {
-
+func DiscordDataBase(db *sql.DB, message *discordgo.MessageCreate, session *discordgo.Session) (sql.Result, *discordgo.Session, error) {
 	// Access the channel information
 	channel, err := session.State.Channel(message.ChannelID)
 	if err != nil {
-		fmt.Println("Error getting channel information:", err)
+		return nil, nil, fmt.Errorf("error getting channel information: %v", err)
 	}
 
 	channelName := channel.Name
@@ -354,13 +371,34 @@ func DiscordDataBase(db *sql.DB, message *discordgo.MessageCreate, session *disc
 	formattedTimestamp := messageTimestamp.Format(time.RFC3339)
 	channelID := message.ChannelID
 
-	resultado, derr := db.Exec("INSERT INTO messages (message_id, author_id, message_content, date_sent, time_sent) VALUES (?, ?, ?, ?, ?)", messageID, authorID, messageContent, messageTimestamp, formattedTimestamp)
-	resultado, derr = db.Exec("INSERT INTO users (author_id) VALUES (?)", authorID)
-	resultado, derr = db.Exec("INSERT INTO channels (channel_id, channel_name) VALUES (?, ?)", channelID, channelName)
+	// Use a transaction for atomicity
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, nil, fmt.Errorf("error beginning database transaction: %v", err)
+	}
+	defer tx.Rollback()
 
-	if derr != nil {
-		log.Fatal("Can't insert data into the database:", err)
+	// Execute each query individually within the transaction
+	result, err := tx.Exec("INSERT INTO messages (message_id, author_id, message_content, date_sent, time_sent) VALUES (?, ?, ?, ?, ?)", messageID, authorID, messageContent, messageTimestamp, formattedTimestamp)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error inserting into messages table: %v", err)
 	}
 
-	return resultado
+	_, err = tx.Exec("INSERT INTO users (author_id) VALUES (?)", authorID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error inserting into users table: %v", err)
+	}
+
+	_, err = tx.Exec("INSERT INTO channels (channel_id, channel_name) VALUES (?, ?)", channelID, channelName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error inserting into channels table: %v", err)
+	}
+
+	// Commit the transaction if all queries succeed
+	err = tx.Commit()
+	if err != nil {
+		return nil, nil, fmt.Errorf("error committing database transaction: %v", err)
+	}
+
+	return result, session, nil
 }

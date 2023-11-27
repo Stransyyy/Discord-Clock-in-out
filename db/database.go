@@ -39,7 +39,7 @@ type CustomerRow struct {
 	    }
 	}
 */
-func ScanTableInputs(db *sql.DB) ([]CustomerRow, []string, error) {
+func ScanTableInputs(db *sql.DB) ([]CustomerRow, []string, error, string) {
 
 	rows, err := db.Query("SELECT * FROM Customer;")
 	if err != nil {
@@ -63,7 +63,10 @@ func ScanTableInputs(db *sql.DB) ([]CustomerRow, []string, error) {
 		rowsData = append(rowsData, rowData)
 	}
 	fmt.Print(rowsData)
-	return rowsData, columns, err
+
+	completado := "Inputs added succesfully"
+
+	return rowsData, columns, err, completado
 }
 
 /*
