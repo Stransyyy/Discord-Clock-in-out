@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -10,17 +9,19 @@ import (
 )
 
 func main() {
+	//Load MySQL credentials for the connection
 	cred, err := data.JsonFileReader("credentials.json")
 	if err != nil {
 		return
 	}
-
-	fmt.Println("Welcome to MySQL")
-
+	//Stablis connection with the database
 	con, err := data.Connection(cred)
 	if err != nil {
-		panic(err)
+		log.Fatal("Error establishing connection to the database:", err)
 	}
+
+	//Closes connection to the database
+	defer data.CloseDB(con)
 
 	//data.ScanTableInputs(con)
 
@@ -38,10 +39,7 @@ func main() {
 
 	dc.BotToken = botToken
 	dc.StransyyyBotChanneId = stransyyyBotChanneId
-	dc.Run()
+	dc.Run(con)
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	//Closes connection to the database
-	defer data.CloseDB(con)
 }

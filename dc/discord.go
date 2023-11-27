@@ -17,7 +17,6 @@ import (
 
 var (
 	BotToken string
-	db       *sql.DB
 	// Discord server ID
 	StransyyyBotChanneId string
 )
@@ -32,7 +31,7 @@ type QuoteData struct {
 
 const prefix string = "!bot"
 
-func Run() {
+func Run(db *sql.DB) {
 	// Creates a new discord session
 	discord, err := discordgo.New("Bot " + BotToken)
 	if err != nil {
@@ -52,9 +51,14 @@ func Run() {
 	discord.SyncEvents = false
 
 	commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"clockin":  ClockInResponse,
-		"clockout": ClockOutResponse,
+		"clockin":  func(s *discordgo.Session, i *discordgo.InteractionCreate) { ClockInResponse(s, i, db) },
+		"clockout": func(s *discordgo.Session, i *discordgo.InteractionCreate) { ClockOutResponse(s, i, db) },
 	}
+
+	// commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+	// 	"clockin":  ClockInResponse,
+	// 	"clockout": ClockOutResponse,
+	// }
 
 	discord.Identify.Intents = discordgo.IntentGuildMessages
 
@@ -209,7 +213,7 @@ func clockOutEmbed() *discordgo.MessageEmbed {
 }
 
 // ClockInResponse is the message the bot sends and the actions it takes whenever is being used
-func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate, db *sql.DB) {
 
 	channelID := "1172648319940558970"
 	_, ok := session.ChannelMessageSend(channelID, "Stransyyy bot esta siendo usado...")
@@ -264,6 +268,22 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 		return
 	}
 
+	// Insert inputs to the database whenever the slash command is being used
+	result, updatedSession, dbErr := DiscordDataBase(db, nil, session)
+	if dbErr != nil {
+		log.Println("Error storing data in the database:", dbErr)
+	}
+
+	// Check the result of the database operation
+	if result != nil {
+		log.Println("Database operation successful:", result)
+	}
+
+	// Use the updated session if it's not nil
+	if updatedSession != nil {
+		log.Println("Session updated successfully")
+	}
+
 	// Send a message with an embed to the user in the DM channel
 	if dmChannel != nil && dmChannel.ID != "" {
 		_, dmErr := session.ChannelMessageSendEmbed(dmChannel.ID, clockInEmbed())
@@ -277,7 +297,7 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 }
 
 // clockOutResponse will send an embed as a response to the slash command call
-func ClockOutResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func ClockOutResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate, db *sql.DB) {
 
 	channelID := "1172648319940558970"
 	_, ok := session.ChannelMessageSend(channelID, "Stransyyy bot esta siendo usado...")
@@ -333,7 +353,7 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 	}
 
 	// Insert inputs to the database whenever the slash command is being used
-	result, updatedSession, dbErr := DiscordDataBase(nil, nil, session)
+	result, updatedSession, dbErr := DiscordDataBase(db, nil, session)
 	if dbErr != nil {
 		log.Println("Error storing data in the database:", dbErr)
 	}
@@ -347,7 +367,6 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 	if updatedSession != nil {
 		log.Println("Session updated successfully")
 	}
-
 	// Send a message with an embed to the user in the DM channel (this will be something else)
 	if dmChannel != nil && dmChannel.ID != "" {
 		_, dmErr := session.ChannelMessageSendEmbed(dmChannel.ID, clockOutEmbed())
