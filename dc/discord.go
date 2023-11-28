@@ -3,13 +3,13 @@ package dc
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
@@ -32,6 +32,11 @@ type QuoteData struct {
 const prefix string = "!bot"
 
 func Run(db *sql.DB) {
+	if db == nil {
+		log.Fatal("Error db is nil in Run")
+		return
+	}
+
 	// Creates a new discord session
 	discord, err := discordgo.New("Bot " + BotToken)
 	if err != nil {
@@ -214,11 +219,15 @@ func clockOutEmbed() *discordgo.MessageEmbed {
 
 // ClockInResponse is the message the bot sends and the actions it takes whenever is being used
 func ClockInResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate, db *sql.DB) {
+	if db == nil {
+		log.Fatal("Error db is nil in clockinresponse")
+		return
+	}
 
 	channelID := "1172648319940558970"
-	_, ok := session.ChannelMessageSend(channelID, "Stransyyy bot esta siendo usado...")
-	if ok != nil {
-		log.Fatal("Is the error here?", ok)
+	_, err := session.ChannelMessageSend(channelID, "Stransyyy bot esta siendo usado...")
+	if err != nil {
+		log.Fatal("Is the error here?", err)
 	}
 
 	// Check if interaction or interaction.Interaction is nil
@@ -240,7 +249,7 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 	}()
 
 	// Respond to the slash command interaction with a deferred response
-	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+	err = session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "You have clocked-in succesfully!",
@@ -261,27 +270,18 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 		return
 	}
 
+	// Stores the data into the database
+	err = messagesDataBaseHandler(db, session, m)
+
+	if err != nil {
+		log.Fatal("messageDatabase interaction message not working:", err)
+	}
+
 	// Create a DM channel with the user who used the command
 	dmChannel, err := session.UserChannelCreate(userID)
 	if err != nil {
 		log.Println("Error creating DM channel:", err)
 		return
-	}
-
-	// Insert inputs to the database whenever the slash command is being used
-	result, updatedSession, dbErr := DiscordDataBase(db, nil, session)
-	if dbErr != nil {
-		log.Println("Error storing data in the database:", dbErr)
-	}
-
-	// Check the result of the database operation
-	if result != nil {
-		log.Println("Database operation successful:", result)
-	}
-
-	// Use the updated session if it's not nil
-	if updatedSession != nil {
-		log.Println("Session updated successfully")
 	}
 
 	// Send a message with an embed to the user in the DM channel
@@ -298,6 +298,10 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 
 // clockOutResponse will send an embed as a response to the slash command call
 func ClockOutResponse(session *discordgo.Session, interaction *discordgo.InteractionCreate, db *sql.DB) {
+	if db == nil {
+		log.Fatal("Error db is nil in clockoutresponse")
+		return
+	}
 
 	channelID := "1172648319940558970"
 	_, ok := session.ChannelMessageSend(channelID, "Stransyyy bot esta siendo usado...")
@@ -352,21 +356,8 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 		return
 	}
 
-	// Insert inputs to the database whenever the slash command is being used
-	result, updatedSession, dbErr := DiscordDataBase(db, nil, session)
-	if dbErr != nil {
-		log.Println("Error storing data in the database:", dbErr)
-	}
+	//
 
-	// Check the result of the database operation
-	if result != nil {
-		log.Println("Database operation successful:", result)
-	}
-
-	// Use the updated session if it's not nil
-	if updatedSession != nil {
-		log.Println("Session updated successfully")
-	}
 	// Send a message with an embed to the user in the DM channel (this will be something else)
 	if dmChannel != nil && dmChannel.ID != "" {
 		_, dmErr := session.ChannelMessageSendEmbed(dmChannel.ID, clockOutEmbed())
@@ -379,49 +370,48 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 	}
 }
 
-func DiscordDataBase(db *sql.DB, message *discordgo.MessageCreate, session *discordgo.Session) (sql.Result, *discordgo.Session, error) {
-	// Access the channel information
-	channel, err := session.State.Channel(message.ChannelID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error getting channel information: %v", err)
+// Add content into the tables
+func messagesDataBaseHandler(db *sql.DB, s *discordgo.Session, m *discordgo.MessageCreate) error {
+
+	query := "INSERT INTO messages (message_id, author_id, message_content, date_sent) VALUES (?, ?, ?, ?)"
+
+	if m == nil {
+		log.Fatal("discord message not set in messagesDatabase")
+		return errors.New("discord message not set")
 	}
 
-	channelName := channel.Name
-	messageID := message.ID
-	authorID := message.Author.ID
-	messageContent := message.Content
-	messageTimestamp := message.Timestamp
-	formattedTimestamp := messageTimestamp.Format(time.RFC3339)
-	channelID := message.ChannelID
+	if db == nil {
+		log.Fatal("db not set in messagesDatabase")
+		return errors.New("db not set")
+	}
 
-	// Use a transaction for atomicity
+	if s == nil {
+		log.Fatal("session not set in messageDataBase")
+		return errors.New("session not set")
+	}
+
+	creationTime, _ := discordgo.SnowflakeTimestamp(m.ID)
+
 	tx, err := db.Begin()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error beginning database transaction: %v", err)
+		log.Fatal("Couldn't initialize the transaction:", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
-	// Execute each query individually within the transaction
-	result, err := tx.Exec("INSERT INTO messages (message_id, author_id, message_content, date_sent, time_sent) VALUES (?, ?, ?, ?, ?)", messageID, authorID, messageContent, messageTimestamp, formattedTimestamp)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error inserting into messages table: %v", err)
-	}
+	res, errs := tx.Exec(query, m.ID, m.Author.ID, m.Content, creationTime)
 
-	_, err = tx.Exec("INSERT INTO users (author_id) VALUES (?)", authorID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error inserting into users table: %v", err)
-	}
-
-	_, err = tx.Exec("INSERT INTO channels (channel_id, channel_name) VALUES (?, ?)", channelID, channelName)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error inserting into channels table: %v", err)
+	if errs != nil {
+		log.Fatal("Couldn't insert into the database:", errs)
 	}
 
-	// Commit the transaction if all queries succeed
 	err = tx.Commit()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error committing database transaction: %v", err)
+		return fmt.Errorf("Couldn't commit the transaction: %v", err)
 	}
 
-	return result, session, nil
+	return nil
 }

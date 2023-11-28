@@ -39,6 +39,7 @@ type CustomerRow struct {
 	    }
 	}
 */
+
 func ScanTableInputs(db *sql.DB) ([]CustomerRow, []string, error, string) {
 
 	rows, err := db.Query("SELECT * FROM Customer;")
@@ -114,6 +115,7 @@ func Connection(y ConnectionCredentials) (*sql.DB, error) {
 	return db, err
 }
 
+// Closes the databse
 func CloseDB(db *sql.DB) error {
 	err := db.Close()
 	if err != nil {
@@ -121,3 +123,20 @@ func CloseDB(db *sql.DB) error {
 	}
 	return nil
 }
+
+/*
+
+result, err := tx.Exec("INSERT INTO messages (message_id, author_id, message_content, date_sent, time_sent) VALUES (?, ?, ?, ?, ?)", messageID, authorID, messageContent, messageTimestamp, formattedTimestamp)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error inserting into messages table: %v", err)
+	}
+
+	_, err = tx.Exec("INSERT INTO users (author_id) VALUES (?)", authorID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error inserting into users table: %v", err)
+	}
+
+	_, err = tx.Exec("INSERT INTO channels (channel_id, channel_name) VALUES (?, ?)", channelID, channelName)
+	if err != nil {
+
+*/
