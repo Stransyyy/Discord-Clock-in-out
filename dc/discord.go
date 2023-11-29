@@ -3,13 +3,13 @@ package dc
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
@@ -27,6 +27,10 @@ type QuoteData struct {
 		Quote  string `json:"quote"`
 		Author string `json:"author"`
 	} `json:"quotes"`
+}
+
+type Record struct {
+	RecordId int64
 }
 
 const prefix string = "!bot"
@@ -59,11 +63,6 @@ func Run(db *sql.DB) {
 		"clockin":  func(s *discordgo.Session, i *discordgo.InteractionCreate) { ClockInResponse(s, i, db) },
 		"clockout": func(s *discordgo.Session, i *discordgo.InteractionCreate) { ClockOutResponse(s, i, db) },
 	}
-
-	// commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-	// 	"clockin":  ClockInResponse,
-	// 	"clockout": ClockOutResponse,
-	// }
 
 	discord.Identify.Intents = discordgo.IntentGuildMessages
 
@@ -270,8 +269,20 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 		return
 	}
 
-	// Stores the data into the database
-	err = messagesDataBaseHandler(db, session, m)
+	//Stores the data into the database
+	messageId := interaction.ID
+	authorId := interaction.Member.User.ID
+	msgContent := "/clockin"
+	dateSent, err := discordgo.SnowflakeTimestamp(interaction.ID)
+	serverId := interaction.GuildID
+	channelId := interaction.ChannelID
+
+	if err != nil {
+		log.Println("dateSent snowflake error ", err)
+		dateSent = time.Now()
+	}
+
+	err = messagesDataBaseHandler(db, serverId, channelId, messageId, authorId, msgContent, dateSent.Local())
 
 	if err != nil {
 		log.Fatal("messageDatabase interaction message not working:", err)
@@ -371,26 +382,25 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 }
 
 // Add content into the tables
-func messagesDataBaseHandler(db *sql.DB, s *discordgo.Session, m *discordgo.MessageCreate) error {
+func messagesDataBaseHandler(db *sql.DB, serverId, channelId, messageId, authorId, content string, dateSent time.Time) error {
+	query := "INSERT INTO messages (message_id, guild_id, channel_id, author_id, message_content, time_sent) VALUES (?, ?, ?, ?, ?, ?)"
 
-	query := "INSERT INTO messages (message_id, author_id, message_content, date_sent) VALUES (?, ?, ?, ?)"
+	// if m == nil {
+	// 	log.Fatal("discord message not set in messagesDatabase")
+	// 	return errors.New("discord message not set")
+	// }
 
-	if m == nil {
-		log.Fatal("discord message not set in messagesDatabase")
-		return errors.New("discord message not set")
-	}
+	// if db == nil {
+	// 	log.Fatal("db not set in messagesDatabase")
+	// 	return errors.New("db not set")
+	// }
 
-	if db == nil {
-		log.Fatal("db not set in messagesDatabase")
-		return errors.New("db not set")
-	}
+	// if s == nil {
+	// 	log.Fatal("session not set in messageDataBase")
+	// 	return errors.New("session not set")
+	// }
 
-	if s == nil {
-		log.Fatal("session not set in messageDataBase")
-		return errors.New("session not set")
-	}
-
-	creationTime, _ := discordgo.SnowflakeTimestamp(m.ID)
+	//creationTime, _ := discordgo.SnowflakeTimestamp(m.ID)
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -402,8 +412,7 @@ func messagesDataBaseHandler(db *sql.DB, s *discordgo.Session, m *discordgo.Mess
 		}
 	}()
 
-	res, errs := tx.Exec(query, m.ID, m.Author.ID, m.Content, creationTime)
-
+	_, errs := tx.Exec(query, messageId, serverId, channelId, authorId, content, dateSent)
 	if errs != nil {
 		log.Fatal("Couldn't insert into the database:", errs)
 	}
@@ -414,4 +423,8 @@ func messagesDataBaseHandler(db *sql.DB, s *discordgo.Session, m *discordgo.Mess
 	}
 
 	return nil
+}
+
+func getDataFromClockIn() {
+
 }

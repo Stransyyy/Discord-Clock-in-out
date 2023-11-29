@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -14,6 +15,9 @@ func main() {
 	if err != nil {
 		return
 	}
+
+	fmt.Println(cred)
+
 	//Stablis connection with the database
 	con, err := data.Connection(cred)
 	if err != nil {
