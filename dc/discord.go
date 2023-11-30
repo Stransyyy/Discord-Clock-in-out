@@ -282,7 +282,7 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 		dateSent = time.Now()
 	}
 
-	err = messagesDataBaseHandler(db, serverId, channelId, messageId, authorId, msgContent, dateSent.Local())
+	err = messagesDataBaseClockInHandler(db, serverId, channelId, messageId, authorId, msgContent, dateSent.Local())
 
 	if err != nil {
 		log.Fatal("messageDatabase interaction message not working:", err)
@@ -367,7 +367,16 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 		return
 	}
 
-	//
+	// The database interaction
+	messageId := interaction.ID
+	authorId := interaction.Member.User.ID
+	msgContent := "/clockin"
+	loc, _ := time.LoadLocation("America/Chicago")
+	now := time.Now().In(loc)
+	serverId := interaction.GuildID
+	channelId := interaction.ChannelID
+
+	err = messagesDataBaseClockOutHandler(db, serverId, channelId, messageId, authorId, msgContent, now)
 
 	// Send a message with an embed to the user in the DM channel (this will be something else)
 	if dmChannel != nil && dmChannel.ID != "" {
@@ -381,26 +390,9 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 	}
 }
 
-// Add content into the tables
-func messagesDataBaseHandler(db *sql.DB, serverId, channelId, messageId, authorId, content string, dateSent time.Time) error {
+// messageDataBaseClockInHandler stores the data using the query that needs to be sent everytime the slash command is executed in discord
+func messagesDataBaseClockInHandler(db *sql.DB, serverId, channelId, messageId, authorId, content string, dateSent time.Time) error {
 	query := "INSERT INTO messages (message_id, guild_id, channel_id, author_id, message_content, time_sent) VALUES (?, ?, ?, ?, ?, ?)"
-
-	// if m == nil {
-	// 	log.Fatal("discord message not set in messagesDatabase")
-	// 	return errors.New("discord message not set")
-	// }
-
-	// if db == nil {
-	// 	log.Fatal("db not set in messagesDatabase")
-	// 	return errors.New("db not set")
-	// }
-
-	// if s == nil {
-	// 	log.Fatal("session not set in messageDataBase")
-	// 	return errors.New("session not set")
-	// }
-
-	//creationTime, _ := discordgo.SnowflakeTimestamp(m.ID)
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -425,6 +417,33 @@ func messagesDataBaseHandler(db *sql.DB, serverId, channelId, messageId, authorI
 	return nil
 }
 
-func getDataFromClockIn() {
+// messageDataBaseClockOutHandler stores the data using the query that needs to be sent everytime the slash command is executed in discord
+func messagesDataBaseClockOutHandler(db *sql.DB, serverId, channelId, messageId, authorId, content string, dateSent time.Time) error {
+	query := "INSERT INTO messages (message_id, guild_id, channel_id, author_id, message_content, time_sent) VALUES (?, ?, ?, ?, ?, ?)"
 
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatal("Couldn't initialize the transaction:", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	_, errs := tx.Exec(query, messageId, serverId, channelId, authorId, content, dateSent)
+	if errs != nil {
+		log.Fatal("Couldn't insert into the database:", errs)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("Couldn't commit the transaction: %v", err)
+	}
+
+	return nil
 }
+
+// func getDataFromClockIn() {
+
+// }
