@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"time"
 
@@ -61,8 +60,9 @@ func Run(db *sql.DB) {
 	discord.SyncEvents = false
 
 	commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"clockin":  func(s *discordgo.Session, i *discordgo.InteractionCreate) { ClockInResponse(s, i, db) },
-		"clockout": func(s *discordgo.Session, i *discordgo.InteractionCreate) { ClockOutResponse(s, i, db) },
+		"clockin":      func(s *discordgo.Session, i *discordgo.InteractionCreate) { ClockInResponse(s, i, db) },
+		"clockout":     func(s *discordgo.Session, i *discordgo.InteractionCreate) { ClockOutResponse(s, i, db) },
+		"lastInserted": func(s *discordgo.Session, i *discordgo.InteractionCreate) { lastInsertedResponse(s, i, db) },
 	}
 
 	discord.Identify.Intents = discordgo.IntentGuildMessages
@@ -75,7 +75,7 @@ func Run(db *sql.DB) {
 
 	var commands []*discordgo.ApplicationCommand
 
-	commands = append(commands, clockinTimeCommand(), clockoutTimeCommand())
+	commands = append(commands, clockinTimeCommand(), clockoutTimeCommand(), lastInsertedCommand())
 
 	for _, c := range commands {
 		_, cmderr := discord.ApplicationCommandCreate(os.Getenv("BOT_APP_ID"), "", c)
@@ -180,6 +180,13 @@ func clockoutTimeCommand() *discordgo.ApplicationCommand {
 
 }
 
+func getDataFromClockInCommand() *discordgo.ApplicationCommand {
+	return &discordgo.ApplicationCommand{
+		Name:        "last-inserted",
+		Description: "Get the last input of the database",
+	}
+}
+
 // clockInEmbed will send an embed
 func clockInEmbed() *discordgo.MessageEmbed {
 	image := discordgo.MessageEmbedImage{
@@ -198,18 +205,16 @@ func clockInEmbed() *discordgo.MessageEmbed {
 	return &embed
 }
 
-func clockInResponseEmbed(i int64, x int) *discordgo.MessageEmbed {
+func clockInResponseEmbed() *discordgo.MessageEmbed {
 	image := discordgo.MessageEmbedImage{
 		URL: "https://pics.craiyon.com/2023-09-10/25964e1a01134ba2b5497645ee40b85a.webp",
 	}
-
-	descripcion := strconv.FormatInt(i, x)
 
 	// Embed content
 	embed := discordgo.MessageEmbed{
 		URL:         "https://vitalitysouth.com/",
 		Title:       "Clock-In",
-		Description: descripcion,
+		Description: "",
 		Color:       5763719,
 		Image:       &image,
 	}
@@ -221,7 +226,7 @@ func clockInResponseEmbed(i int64, x int) *discordgo.MessageEmbed {
 func clockOutEmbed() *discordgo.MessageEmbed {
 
 	image := discordgo.MessageEmbedImage{
-		URL: "https://img.craiyon.com/2023-11-20/lwkWz-yhSRKqMl38plwCqw.webp",
+		URL: "https://cdn.dribbble.com/users/760079/screenshots/6979564/clockingout_4x.png",
 	}
 
 	// Embed content
@@ -302,7 +307,7 @@ func ClockInResponse(session *discordgo.Session, interaction *discordgo.Interact
 		dateSent = time.Now()
 	}
 
-	dberr := messagesDataBaseClockInHandler(db, serverId, channelId, messageId, authorId, msgContent, dateSent.Local())
+	_, dberr := messagesDataBaseClockInHandler(db, serverId, channelId, messageId, authorId, msgContent, dateSent.Local())
 
 	if dberr != nil {
 		log.Fatal("messageDatabase interaction message not working:", err)
@@ -421,7 +426,7 @@ func ClockOutResponse(session *discordgo.Session, interaction *discordgo.Interac
 }
 
 // messageDataBaseClockInHandler stores the data using the query that needs to be sent everytime the slash command is executed in discord
-func messagesDataBaseClockInHandler(db *sql.DB, serverId, channelId, messageId, authorId, content string, dateSent time.Time) (error, *discordgo.MessageEmbed) {
+func messagesDataBaseClockInHandler(db *sql.DB, serverId, channelId, messageId, authorId, content string, dateSent time.Time) (error, sql.Result) {
 	query := "INSERT INTO messages (message_id, guild_id, channel_id, author_id, message_content, time_sent) VALUES (?, ?, ?, ?, ?, ?)"
 
 	tx, err := db.Begin()
@@ -439,19 +444,12 @@ func messagesDataBaseClockInHandler(db *sql.DB, serverId, channelId, messageId, 
 		log.Fatal("Couldn't insert into the database:", errs)
 	}
 
-	lastInserted, err := res.LastInsertId()
-	if err != nil {
-		log.Fatal(err)
-	}
-	/////
-
-	////
 	err = tx.Commit()
 	if err != nil {
 		return fmt.Errorf("Couldn't commit the transaction: %v", err), nil
 	}
 
-	return nil, clockInResponseEmbed(lastInserted, 10)
+	return nil, res
 }
 
 // messageDataBaseClockOutHandler stores the data using the query that needs to be sent everytime the slash command is executed in discord
@@ -479,8 +477,4 @@ func messagesDataBaseClockOutHandler(db *sql.DB, serverId, channelId, messageId,
 	}
 
 	return nil
-}
-
-func getDataFromClockInHandler() {
-
 }
